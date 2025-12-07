@@ -10,13 +10,20 @@ import time
 import random
 from datetime import datetime
 
-# Configuration
+# Configuration - Only working areas with custom page limits
 AREAS = {
-    'athens-center': 'https://www.spitogatos.gr/en/for_sale-homes/athens-center',
-    'athens-north': 'https://www.spitogatos.gr/en/for_sale-homes/athens-north',
-    'athens-south': 'https://www.spitogatos.gr/en/for_sale-homes/athens-south',
-    'athens-west': 'https://www.spitogatos.gr/en/for_sale-homes/athens-west',
-    'piraeus': 'https://www.spitogatos.gr/en/for_sale-homes/piraeus'
+    'athens-center': {
+        'url': 'https://www.spitogatos.gr/en/for_sale-homes/athens-center',
+        'pages': 80  # Will get ~2400 listings
+    },
+    'athens-north': {
+        'url': 'https://www.spitogatos.gr/en/for_sale-homes/athens-north',
+        'pages': 80  # Will get ~2400 listings
+    },
+    'athens-south': {
+        'url': 'https://www.spitogatos.gr/en/for_sale-homes/athens-south',
+        'pages': 60  # Will get ~900 listings
+    }
 }
 
 def setup_driver():
@@ -154,15 +161,16 @@ def scrape_page(driver, url):
         print(f"  Error scraping page: {e}")
         return []
 
-def scrape_area(driver, area_name, base_url, pages_per_area):
+def scrape_area(driver, area_name, base_url, pages_for_area):
     """Scrape multiple pages from one area"""
     print(f"\n{'='*70}")
     print(f"📍 SCRAPING AREA: {area_name.upper().replace('-', ' ')}")
+    print(f"   Target: {pages_for_area} pages")
     print(f"{'='*70}")
     
     all_listings = []
     
-    for page_num in range(1, pages_per_area + 1):
+    for page_num in range(1, pages_for_area + 1):
         if page_num == 1:
             url = base_url
         else:
@@ -191,17 +199,17 @@ def scrape_area(driver, area_name, base_url, pages_per_area):
     print(f"✅ Finished {area_name}: {len(all_listings)} listings")
     return all_listings
 
-def scrape_all_areas(pages_per_area=40):
+def scrape_all_areas():
     """Main scraping function"""
     driver = setup_driver()
     all_data = []
     area_stats = {}
     
     try:
-        for area_name, base_url in AREAS.items():
+        for area_name, area_info in AREAS.items():
             print(f"\n🔄 Starting {area_name}...")
             
-            area_listings = scrape_area(driver, area_name, base_url, pages_per_area)
+            area_listings = scrape_area(driver, area_name, area_info['url'], area_info['pages'])
             
             if area_listings:
                 all_data.extend(area_listings)
@@ -239,22 +247,22 @@ if __name__ == "__main__":
     print("="*70)
     print("SPITOGATOS SELENIUM SCRAPER (ANTI-DETECTION)")
     print("="*70)
-    print("\n📍 Areas:")
-    for i, area in enumerate(AREAS.keys(), 1):
-        print(f"  {i}. {area.replace('-', ' ').title()}")
+    print("\n📍 Areas and pages to scrape:")
+    total_expected = 0
+    for i, (area, info) in enumerate(AREAS.items(), 1):
+        expected = info['pages'] * 30
+        total_expected += expected
+        print(f"  {i}. {area.replace('-', ' ').title()}: {info['pages']} pages (~{expected} listings)")
     
-    try:
-        pages = int(input("\nPages per area (Recommended 30-40): "))
-    except:
-        pages = 30
-    
+    print(f"\n📊 Expected total: ~{total_expected} listings")
+    print(f"⏱️  Estimated time: ~{int(sum(a['pages'] for a in AREAS.values()) * 10 / 60)} minutes")
     print(f"\n🚀 Starting scraper...")
     print(f"⚠️  A Chrome browser window will open - DON'T CLOSE IT!")
-    print(f"⏱️  Estimated time: ~{int((pages * len(AREAS) * 10) / 60)} minutes\n")
+    print("\nStarting in 3 seconds... (Press Ctrl+C to cancel)\n")
     time.sleep(3)
     
     # Scrape
-    all_listings, area_stats = scrape_all_areas(pages_per_area=pages)
+    all_listings, area_stats = scrape_all_areas()
     
     # Stats
     print("\n" + "="*70)
